@@ -1,273 +1,207 @@
 <template>
 	<div class="login">
 		<div class="loginArea">
-			<div class="logo">桃桃的自动同步工具</div>
-			<div class="title">密码登录</div>
+			<div class="header">
+				<div class="logo">TaoSync</div>
+				<div class="title">自动同步工具</div>
+			</div>
+			
 			<el-form :model="loginForm" :rules="rules" ref="loginForm" label-width="0">
 				<el-form-item prop="userName">
-					<el-input class="input" placeholder="请输入用户名" prefix-icon="el-icon-user"
+					<el-input class="custom-input" placeholder="用户名" prefix-icon="el-icon-user"
 						v-model="loginForm.userName"></el-input>
 				</el-form-item>
 				<el-form-item prop="passwd">
-					<el-input placeholder="请输入密码" prefix-icon="el-icon-lock" v-model="loginForm.passwd" show-password
+					<el-input class="custom-input" placeholder="密码" prefix-icon="el-icon-lock" v-model="loginForm.passwd" show-password
 						@keyup.enter.native="login"></el-input>
 				</el-form-item>
 			</el-form>
-			<div class="foget" @click="fogetPwd">忘记密码？</div>
-			<el-button class="login-button" size="medium" type="primary" :loading="loading"
-				@click="login">登录</el-button>
-		</div>
-		<el-dialog :close-on-click-modal="false" :visible.sync="showPwd" :append-to-body="true" title="重置密码"
-			width="560px" :before-close="closePwd">
-			<div>
-				<el-form :model="pwdForm" :rules="pwdRules" ref="resetForm" label-width="80px">
-					<el-form-item prop="userName" label="用户名">
-						<el-input class="input" placeholder="请输入用户名" v-model="pwdForm.userName"></el-input>
-					</el-form-item><el-form-item prop="key" label="加密秘钥">
-						<el-input class="input" placeholder="在[程序同级]或[docker挂载]目录[data/secret.key]文件中复制全部"
-							v-model="pwdForm.key"></el-input>
-					</el-form-item>
-					<el-form-item prop="passwd" label="新密码">
-						<el-input placeholder="请输入新密码" v-model="pwdForm.passwd" show-password></el-input>
-					</el-form-item>
-					<el-form-item prop="passwd2" label="确认密码">
-						<el-input placeholder="请确认新密码" v-model="pwdForm.passwd2" show-password></el-input>
-					</el-form-item>
-				</el-form>
+			
+			<div class="action-bar">
+				<div class="foget" @click="fogetPwd">忘记密码？</div>
 			</div>
+
+			<el-button class="login-button" type="primary" :loading="loading" @click="login">登 录</el-button>
+		</div>
+
+		<el-dialog :close-on-click-modal="false" :visible.sync="showPwd" :append-to-body="true" title="重置密码"
+			width="90%" class="custom-dialog" :before-close="closePwd">
+			<el-form :model="pwdForm" :rules="pwdRules" ref="resetForm" label-position="top">
+				<el-form-item prop="userName" label="用户名">
+					<el-input placeholder="请输入用户名" v-model="pwdForm.userName"></el-input>
+				</el-form-item>
+				<el-form-item prop="key" label="加密秘钥">
+					<el-input type="textarea" :rows="2" placeholder="复制 data/secret.key 内容" v-model="pwdForm.key"></el-input>
+				</el-form-item>
+				<el-form-item prop="passwd" label="新密码">
+					<el-input placeholder="请输入新密码" v-model="pwdForm.passwd" show-password></el-input>
+				</el-form-item>
+				<el-form-item prop="passwd2" label="确认密码">
+					<el-input placeholder="请确认新密码" v-model="pwdForm.passwd2" show-password></el-input>
+				</el-form-item>
+			</el-form>
 			<span slot="footer" class="dialog-footer">
-				<el-button @click="closePwd">取 消</el-button>
-				<el-button type="primary" @click="fogetSubmit" :loading="loading">确 定</el-button>
+				<el-button @click="closePwd" size="small">取 消</el-button>
+				<el-button type="primary" @click="fogetSubmit" :loading="loading" size="small">确 定</el-button>
 			</span>
 		</el-dialog>
 	</div>
 </template>
 
 <script>
-	import Cookies from 'js-cookie';
-	import {
-		login,
-		resetPwd
-	} from "@/api/user";
-	export default {
-		name: 'Login',
-		data() {
-			var validatePass2 = (rule, value, callback) => {
-				if (value == '' || value == null) {
-					callback(new Error('请再次输入新密码'));
-				} else if (value !== this.pwdForm.passwd) {
-					callback(new Error('两次输入密码不一致!'));
-				} else {
-					callback();
-				}
-			};
-			return {
-				loginForm: {
-					userName: null,
-					passwd: null
-				},
-				loading: false,
-				rules: {
-					userName: [{
-						required: true,
-						message: '请输入用户名',
-						trigger: 'blur'
-					}],
-					passwd: [{
-						required: true,
-						message: '请输入密码',
-						trigger: 'blur'
-					}]
-				},
-				pwdRules: {
-					userName: [{
-						required: true,
-						message: '请输入用户名',
-						trigger: 'blur'
-					}],
-					key: [{
-						required: true,
-						message: '请输入key',
-						trigger: 'blur'
-					}],
-					passwd: [{
-						required: true,
-						message: '请输入新密码',
-						trigger: 'blur'
-					}],
-					passwd2: [{
-						validator: validatePass2,
-						trigger: 'blur'
-					}]
-				},
-				showPwd: false,
-				pwdForm: {
-					userName: null,
-					key: null,
-					passwd: null,
-					passwd2: null
-				}
-			};
-		},
-		created() {},
-		methods: {
-			login() {
-				this.$refs.loginForm.validate((valid) => {
-					if (valid) {
-						Cookies.remove(this.vuex_cookieName);
-						this.loading = true;
-						login(this.loginForm).then(res => {
-							this.$setVuex('vuex_userInfo', res.data);
-							this.$router.replace('/home');
-							this.loading = false;
-						}).catch(err => {
-							this.loading = false;
-
-						})
-					} else {
-						return false;
-					}
-				});
-			},
-			fogetPwd() {
-				this.showPwd = true;
-			},
-			closePwd() {
-				this.showPwd = false;
-				this.pwdForm = {
-					userName: null,
-					key: null,
-					passwd: null,
-					passwd2: null
-				}
-			},
-			fogetSubmit() {
-				this.$refs.resetForm.validate((valid) => {
-					if (valid) {
-						this.loading = true;
-						resetPwd(this.pwdForm).then(res => {
-							this.closePwd();
-							this.$message({
-								message: '密码重置成功，请使用新密码登录',
-								type: 'success'
-							});
-							this.loading = false;
-						}).catch(err => {
-							this.loading = false;
-						})
-					} else {
-						return false;
-					}
-				});
-			}
-		}
-	}
+/* ... script 逻辑保持不变，只需直接复用你原有的逻辑即可 ... */
+import Cookies from 'js-cookie';
+import { login, resetPwd } from "@/api/user";
+export default {
+    name: 'Login',
+    data() {
+        var validatePass2 = (rule, value, callback) => {
+            if (value == '' || value == null) {
+                callback(new Error('请再次输入新密码'));
+            } else if (value !== this.pwdForm.passwd) {
+                callback(new Error('两次输入密码不一致!'));
+            } else {
+                callback();
+            }
+        };
+        return {
+            loginForm: { userName: null, passwd: null },
+            loading: false,
+            rules: {
+                userName: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+                passwd: [{ required: true, message: '请输入密码', trigger: 'blur' }]
+            },
+            pwdRules: {
+                userName: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+                key: [{ required: true, message: '请输入key', trigger: 'blur' }],
+                passwd: [{ required: true, message: '请输入新密码', trigger: 'blur' }],
+                passwd2: [{ validator: validatePass2, trigger: 'blur' }]
+            },
+            showPwd: false,
+            pwdForm: { userName: null, key: null, passwd: null, passwd2: null }
+        };
+    },
+    methods: {
+        login() {
+            this.$refs.loginForm.validate((valid) => {
+                if (valid) {
+                    Cookies.remove(this.vuex_cookieName);
+                    this.loading = true;
+                    login(this.loginForm).then(res => {
+                        this.$setVuex('vuex_userInfo', res.data);
+                        this.$router.replace('/home');
+                        this.loading = false;
+                    }).catch(() => { this.loading = false; })
+                }
+            });
+        },
+        fogetPwd() { this.showPwd = true; },
+        closePwd() { this.showPwd = false; this.pwdForm = { userName: null, key: null, passwd: null, passwd2: null } },
+        fogetSubmit() {
+            this.$refs.resetForm.validate((valid) => {
+                if (valid) {
+                    this.loading = true;
+                    resetPwd(this.pwdForm).then(res => {
+                        this.closePwd();
+                        this.$message({ message: '密码重置成功', type: 'success' });
+                        this.loading = false;
+                    }).catch(() => { this.loading = false; })
+                }
+            });
+        }
+    }
+}
 </script>
+
 <style lang="scss" scoped>
-	.login {
-		display: flex;
-		align-items: center;
-		position: fixed;
-		top: 0;
-		bottom: 0;
-		left: 0;
-		right: 0;
-		background: url(~@/assets/img/login-bg.jpg) no-repeat center;
-		background-size: cover;
+.login {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	position: fixed;
+	top: 0; bottom: 0; left: 0; right: 0;
+	background: #f5f5f7; // 浅灰背景，干净清爽
 
-		.loginArea {
-			background: rgba(16, 30, 65, 0.95);
-			width: 520px;
-			box-sizing: border-box;
-			padding: 30px 60px;
-			border-radius: 4px;
-			margin-left: 5%;
-			color: #FFF;
+	.loginArea {
+		background: #ffffff;
+		width: 100%;
+		max-width: 400px; // 适应移动端
+		margin: 20px;
+		padding: 40px 30px;
+		border-radius: 20px;
+		box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04);
 
-			:deep(.el-input) {
-				font-size: 20px;
-
-				.el-input__inner {
-					background-color: transparent;
-					color: #FFF;
-					height: 60px;
-					font-size: 20px;
-					border: 1px solid #FFF;
-				}
-
-				.el-input__inner:focus {
-					border: 1px solid #409eff;
-				}
-			}
-
-			:deep(.el-form-item.is-error .el-input__inner) {
-				border: 1px solid #F56C6C;
-			}
-
-			:deep(.el-input--prefix .el-input__inner) {
-				padding-left: 40px;
-			}
-
-			:deep(.el-form-item) {
-				margin-bottom: 28px;
-
-				.el-form-item__error {
-					font-size: 16px;
-				}
-			}
-
-			:deep(.el-button--primary) {
-				font-size: 20px;
-				padding: 19px 20px;
-			}
+		.header {
+			text-align: center;
+			margin-bottom: 40px;
 
 			.logo {
-				background-image: url('/logo-200-64.png');
-				background-position: center 0;
-				background-repeat: no-repeat;
-				width: 400px;
-				padding-top: 80px;
-				text-align: center;
-				letter-spacing: 6px;
-				font-size: 20px;
+				font-size: 28px;
+				font-weight: 600;
+				color: #1d1d1f;
+				letter-spacing: -0.5px;
 			}
-
 			.title {
-				margin-top: 60px;
-				font-size: 24px;
-				font-weight: 500;
-				color: #ffffff;
-				line-height: 28px;
-				text-align: center;
-				padding-bottom: 13px;
-				border-bottom: 1px solid rgba(238, 238, 238, 0.2);
-				margin-bottom: 43px;
-				position: relative;
-
-				&::after {
-					content: "";
-					display: block;
-					width: 53px;
-					height: 6px;
-					background: url(~@/assets/img/login-line-rectangle.png);
-					margin: 0 auto;
-					position: absolute;
-					bottom: 0;
-					left: 50%;
-					transform: translateX(-50%);
-				}
-			}
-
-			.login-button {
-				width: 100%;
-				margin: 20px 0 20px 0;
-			}
-
-			.foget {
-				text-align: right;
-				cursor: pointer;
-				color: #409eff;
+				font-size: 14px;
+				color: #86868b;
+				margin-top: 8px;
 			}
 		}
+
+		:deep(.custom-input) {
+			.el-input__inner {
+				background-color: #f5f5f7;
+				border: none;
+				height: 50px;
+				border-radius: 12px;
+				font-size: 15px;
+				color: #1d1d1f;
+				transition: all 0.2s;
+				
+				&:focus {
+					background-color: #ffffff;
+					box-shadow: 0 0 0 2px #007aff;
+				}
+			}
+			.el-input__prefix {
+				left: 10px;
+				line-height: 50px;
+			}
+		}
+
+		.action-bar {
+			display: flex;
+			justify-content: flex-end;
+			margin-top: -10px;
+			margin-bottom: 25px;
+
+			.foget {
+				font-size: 13px;
+				color: #007aff;
+				cursor: pointer;
+				&:hover { text-decoration: underline; }
+			}
+		}
+
+		.login-button {
+			width: 100%;
+			height: 50px;
+			border-radius: 12px;
+			font-size: 16px;
+			font-weight: 600;
+			background: #007aff;
+			border: none;
+			box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+		}
 	}
+}
+
+// 弹窗适配移动端
+:deep(.custom-dialog) {
+	.el-dialog {
+		border-radius: 16px;
+		max-width: 500px;
+	}
+	.el-dialog__header { font-weight: 600; }
+}
 </style>
